@@ -2,17 +2,17 @@ import SwiftUI
 import AppKit
 
 extension Notification.Name {
-    static let showPomodoroSettings = Notification.Name("ShowPomodoroSettings")
+    static let showTomatiSettings = Notification.Name("ShowTomatiSettings")
 }
 
 @main
-struct PomoBarApp: App {
+struct TomatiApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
         Settings {
             SettingsView()
-                .environment(PomodoroModel.shared)
+                .environment(TomatiModel.shared)
         }
     }
 }
@@ -26,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isPulseRed = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let contentView = ContentView().environment(PomodoroModel.shared)
+        let contentView = ContentView().environment(TomatiModel.shared)
         
         popover = NSPopover()
         popover.contentSize = NSSize(width: 230, height: 142)
@@ -44,7 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuIcon), name: NSNotification.Name("UpdateMenuIcon"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(showSettingsFromNotification), name: .showPomodoroSettings, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(showSettingsFromNotification), name: .showTomatiSettings, object: nil)
     }
     
     // 2. Discriminador de Clicks
@@ -67,7 +67,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "Quit Pomodoro", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit Tomati", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
@@ -80,7 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - Acciones del Menú
     @objc func openSettings() {
-        PomodoroModel.shared.settingsSelection = "General"
+        TomatiModel.shared.settingsSelection = "General"
         presentSettingsWindow()
     }
         
@@ -92,14 +92,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let settingsView = SettingsView()
-            .environment(PomodoroModel.shared)
+            .environment(TomatiModel.shared)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 720, height: 600),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Pomodoro Settings"
+        window.title = "Tomati Settings"
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: settingsView)
         window.center()
@@ -120,7 +120,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Lógica Anterior
     @objc func updateMenuIcon() {
         guard let button = statusItem.button else { return }
-        let model = PomodoroModel.shared
+        let model = TomatiModel.shared
         let currentProgress = model.state == .idle ? 0.0 : model.progress
         button.image = generateProgressIcon(iconName: model.menuIcon, progress: currentProgress)
         updateOvertimePulse(isOvertime: model.state == .overtime)

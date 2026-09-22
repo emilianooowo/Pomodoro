@@ -115,7 +115,7 @@ private struct MinuteScale: View {
 }
 
 struct ContentView: View {
-    @Environment(PomodoroModel.self) private var model
+    @Environment(TomatiModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var customMinutes: Double = 0
@@ -270,7 +270,7 @@ struct ContentView: View {
                     if model.sessions.isEmpty {
                         Button("Create a Session…") {
                             model.settingsSelection = "Sessions"
-                            NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+                            NotificationCenter.default.post(name: .showTomatiSettings, object: nil)
                         }
                     } else {
                         ForEach(model.sessions) { session in
@@ -287,7 +287,7 @@ struct ContentView: View {
 
                         Button("Manage Sessions…") {
                             model.settingsSelection = "Sessions"
-                            NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+                            NotificationCenter.default.post(name: .showTomatiSettings, object: nil)
                         }
                     }
                 } label: {
@@ -300,7 +300,7 @@ struct ContentView: View {
 
                 Button {
                     model.settingsSelection = "General"
-                    NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+                    NotificationCenter.default.post(name: .showTomatiSettings, object: nil)
                 } label: {
                     GlassIcon(name: "gearshape.fill", size: 28)
                 }

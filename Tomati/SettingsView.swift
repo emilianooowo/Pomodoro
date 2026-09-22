@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct SettingsView: View {
-    @Environment(PomodoroModel.self) private var model
+    @Environment(TomatiModel.self) private var model
 
     var body: some View {
         @Bindable var bindableModel = model
@@ -28,7 +28,7 @@ struct SettingsView: View {
 }
 
 private struct GeneralSettingsView: View {
-    @Environment(PomodoroModel.self) private var model
+    @Environment(TomatiModel.self) private var model
 
     private let icons = ["timer", "clock", "hourglass", "alarm", "stopwatch", "circle.dashed"]
     private let sounds = ["Ping", "Glass", "Basso", "Blow", "Bottle", "Frog", "Tink"]
@@ -114,7 +114,7 @@ private struct GeneralSettingsView: View {
 
                 Divider()
 
-                Text("Pomodoro 1.5.0")
+                Text("Tomati 1.5.0")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -145,7 +145,7 @@ private struct GeneralSettingsView: View {
 }
 
 private struct PresetEditCircle: View {
-    @Environment(PomodoroModel.self) private var model
+    @Environment(TomatiModel.self) private var model
     @State private var isHovering = false
     let index: Int
 
@@ -202,7 +202,7 @@ private struct PresetEditCircle: View {
 }
 
 private struct AddPresetCircle: View {
-    @Environment(PomodoroModel.self) private var model
+    @Environment(TomatiModel.self) private var model
     let slot: Int
 
     var body: some View {
@@ -230,7 +230,7 @@ private struct AddPresetCircle: View {
 }
 
 private struct SessionsSettingsView: View {
-    @Environment(PomodoroModel.self) private var model
+    @Environment(TomatiModel.self) private var model
 
     var body: some View {
         @Bindable var bindableModel = model

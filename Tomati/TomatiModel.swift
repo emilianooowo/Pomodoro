@@ -29,8 +29,8 @@ struct FocusSession: Identifiable, Codable, Equatable {
 
 @MainActor
 @Observable
-class PomodoroModel {
-    static let shared = PomodoroModel()
+class TomatiModel {
+    static let shared = TomatiModel()
     enum TimerState { case idle, running, paused, overtime }
     enum SessionPhase { case focus, rest }
     

@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		9DA3A47F30624B4F002E52A5 /* Pomodoro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pomodoro.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9DA3A47F30624B4F002E52A5 /* Tomati.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tomati.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		9DA3A48130624B4F002E52A5 /* Pomodoro */ = {
+		9DA3A48130624B4F002E52A5 /* Tomati */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Pomodoro;
+			path = Tomati;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -30,7 +30,7 @@
 		9DA3A47630624B4F002E52A5 = {
 			isa = PBXGroup;
 			children = (
-				9DA3A48130624B4F002E52A5 /* Pomodoro */,
+				9DA3A48130624B4F002E52A5 /* Tomati */,
 				9DA3A48030624B4F002E52A5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -38,7 +38,7 @@
 		9DA3A48030624B4F002E52A5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9DA3A47F30624B4F002E52A5 /* Pomodoro.app */,
+				9DA3A47F30624B4F002E52A5 /* Tomati.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -46,9 +46,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9DA3A47E30624B4F002E52A5 /* Pomodoro */ = {
+		9DA3A47E30624B4F002E52A5 /* Tomati */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9DA3A48C30624B50002E52A5 /* Build configuration list for PBXNativeTarget "Pomodoro" */;
+			buildConfigurationList = 9DA3A48C30624B50002E52A5 /* Build configuration list for PBXNativeTarget "Tomati" */;
 			buildPhases = (
 				9DA3A47B30624B4F002E52A5 /* Sources */,
 				9DA3A47C30624B4F002E52A5 /* Frameworks */,
@@ -57,11 +57,11 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				9DA3A48130624B4F002E52A5 /* Pomodoro */,
+				9DA3A48130624B4F002E52A5 /* Tomati */,
 			);
-			name = Pomodoro;
-			productName = Pomodoro;
-			productReference = 9DA3A47F30624B4F002E52A5 /* Pomodoro.app */;
+			name = Tomati;
+			productName = Tomati;
+			productReference = 9DA3A47F30624B4F002E52A5 /* Tomati.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -79,7 +79,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 9DA3A47A30624B4F002E52A5 /* Build configuration list for PBXProject "Pomodoro" */;
+			buildConfigurationList = 9DA3A47A30624B4F002E52A5 /* Build configuration list for PBXProject "Tomati" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -93,7 +93,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9DA3A47E30624B4F002E52A5 /* Pomodoro */,
+				9DA3A47E30624B4F002E52A5 /* Tomati */,
 			);
 		};
 /* End PBXProject section */
@@ -115,7 +115,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		9DA3A48A30624B50002E52A5 /* Debug configuration for PBXProject "Pomodoro" */ = {
+		9DA3A48A30624B50002E52A5 /* Debug configuration for PBXProject "Tomati" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -178,7 +178,7 @@
 			};
 			name = Debug;
 		};
-		9DA3A48B30624B50002E52A5 /* Release configuration for PBXProject "Pomodoro" */ = {
+		9DA3A48B30624B50002E52A5 /* Release configuration for PBXProject "Tomati" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -233,7 +233,7 @@
 			};
 			name = Release;
 		};
-		9DA3A48D30624B50002E52A5 /* Debug configuration for PBXNativeTarget "Pomodoro" */ = {
+		9DA3A48D30624B50002E52A5 /* Debug configuration for PBXNativeTarget "Tomati" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -253,7 +253,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.5.0;
-				PRODUCT_BUNDLE_IDENTIFIER = emilianoleal.Pomodoro;
+				PRODUCT_BUNDLE_IDENTIFIER = emilianoleal.Tomati;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -265,7 +265,7 @@
 			};
 			name = Debug;
 		};
-		9DA3A48E30624B50002E52A5 /* Release configuration for PBXNativeTarget "Pomodoro" */ = {
+		9DA3A48E30624B50002E52A5 /* Release configuration for PBXNativeTarget "Tomati" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -285,7 +285,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.5.0;
-				PRODUCT_BUNDLE_IDENTIFIER = emilianoleal.Pomodoro;
+				PRODUCT_BUNDLE_IDENTIFIER = emilianoleal.Tomati;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -300,19 +300,19 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9DA3A47A30624B4F002E52A5 /* Build configuration list for PBXProject "Pomodoro" */ = {
+		9DA3A47A30624B4F002E52A5 /* Build configuration list for PBXProject "Tomati" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9DA3A48A30624B50002E52A5 /* Debug configuration for PBXProject "Pomodoro" */,
-				9DA3A48B30624B50002E52A5 /* Release configuration for PBXProject "Pomodoro" */,
+				9DA3A48A30624B50002E52A5 /* Debug configuration for PBXProject "Tomati" */,
+				9DA3A48B30624B50002E52A5 /* Release configuration for PBXProject "Tomati" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		9DA3A48C30624B50002E52A5 /* Build configuration list for PBXNativeTarget "Pomodoro" */ = {
+		9DA3A48C30624B50002E52A5 /* Build configuration list for PBXNativeTarget "Tomati" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9DA3A48D30624B50002E52A5 /* Debug configuration for PBXNativeTarget "Pomodoro" */,
-				9DA3A48E30624B50002E52A5 /* Release configuration for PBXNativeTarget "Pomodoro" */,
+				9DA3A48D30624B50002E52A5 /* Debug configuration for PBXNativeTarget "Tomati" */,
+				9DA3A48E30624B50002E52A5 /* Release configuration for PBXNativeTarget "Tomati" */,
 			);
 			defaultConfigurationName = Release;
 		};
