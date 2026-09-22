@@ -1,33 +1,36 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Forma estándar del icono de macOS -->
-    <clipPath id="macOS">
-      <rect width="1024" height="1024" rx="230" ry="230" />
+    <clipPath id="squircle">
+      <rect width="512" height="512" rx="115" ry="115" />
     </clipPath>
-    <!-- Corte del 70% de progreso -->
-    <clipPath id="progressFill">
-      <rect width="716.8" height="1024" />
+    <clipPath id="leftClip">
+      <rect width="358" height="512" />
     </clipPath>
+    <clipPath id="rightClip">
+      <rect x="358" width="154" height="512" />
+    </clipPath>
+    <g id="tomato">
+      <!-- Hojas del tomate -->
+      <path d="M256,155 C230,135 190,120 155,140 C185,155 220,165 245,165 C230,125 240,80 270,50 C265,95 265,130 265,165 C290,165 325,155 357,140 C322,120 282,135 256,155 Z" />
+      <!-- Cuerpo del tomate -->
+      <path d="M256,430 C130,430 70,350 70,260 C70,160 140,140 256,140 C372,140 442,160 442,260 C442,350 382,430 256,430 Z" />
+    </g>
   </defs>
 
-  <!-- Cuerpo del Icono -->
-  <g clip-path="url(#macOS)">
+  <g clip-path="url(#squircle)">
+    <!-- Fondo gris claro (Lado derecho) -->
+    <rect width="512" height="512" fill="#F4F5F7" />
     
-    <!-- FONDO 1: Blanco/Gris claro (El 30% restante) -->
-    <rect width="1024" height="1024" fill="#F5F5F7" />
-    <!-- Círculo Azul (Visible en la parte blanca) -->
-    <circle cx="512" cy="512" r="240" fill="none" stroke="#0A84FF" stroke-width="45" stroke-dasharray="60 40" stroke-linecap="round" />
+    <!-- Fondo rojo Pomodoro (Lado izquierdo al 70%) -->
+    <rect width="358" height="512" fill="#FF3B30" />
 
-    <!-- FONDO 2: Azul de Progreso (El 70% lleno) -->
-    <g clip-path="url(#progressFill)">
-        <rect width="1024" height="1024" fill="#0A84FF" />
-        <!-- Círculo Blanco (Visible en la parte azul) -->
-        <circle cx="512" cy="512" r="240" fill="none" stroke="#FFFFFF" stroke-width="45" stroke-dasharray="60 40" stroke-linecap="round" />
-    </g>
-    
+    <!-- Parte del tomate que recae sobre el lado derecho (Rojo) -->
+    <use href="#tomato" fill="#FF3B30" clip-path="url(#rightClip)" />
+
+    <!-- Parte del tomate que recae sobre el lado izquierdo (Blanco) -->
+    <use href="#tomato" fill="#FFFFFF" clip-path="url(#leftClip)" />
   </g>
 
-  <!-- Sombras y brillos internos para el estilo cristal de macOS -->
-  <rect width="1024" height="1024" rx="230" ry="230" fill="none" stroke="#000000" stroke-opacity="0.1" stroke-width="4"/>
-  <rect width="1024" height="1024" rx="230" ry="230" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="8" transform="translate(0, -2)"/>
+  <!-- Borde sutil exterior para delimitar la forma en fondos blancos -->
+  <rect x="1" y="1" width="510" height="510" rx="114" ry="114" fill="none" stroke="#E5E5E5" stroke-width="2" />
 </svg>
