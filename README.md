@@ -24,8 +24,9 @@ Since this app is open-source and not distributed through the Mac App Store, mac
 1. Go to the [Releases](https://github.com/emilianooowo/Pomodoro/releases) page and download the latest `Pomodoro.zip`.
 2. Unzip the file and drag `Pomodoro.app` to your **Applications** folder.
 3. **First Launch Only:** Right-click (or Control-click) on the `Pomodoro.app` and select **Open**. 
-4. macOS will show a warning asking if you are sure you want to open it. Click **Open**. 
-*(After doing this once, you can open the app normally forever).*
+4. macOS will show a warning “Pomodoro” Not Opened. Click **Done**. 
+5. Go to your settings and navigate to -> Privacy & Security ->  All the way down and click **Open Anyway** and again **Open Anyway**
+6. Once open you'll see a little circle in your menu bar, you're all set up!.
 
 ## Settings & Customization
 
