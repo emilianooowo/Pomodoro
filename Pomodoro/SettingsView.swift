@@ -2,26 +2,75 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(PomodoroModel.self) var model
-    @State private var selection: String? = "Appearance"
     
     var body: some View {
+        @Bindable var bindableModel = model
+        
         NavigationSplitView {
-            List(selection: $selection) {
+            List(selection: $bindableModel.settingsSelection) {
                 Label("Appearance", systemImage: "paintpalette").tag("Appearance")
                 Label("Presets & Limits", systemImage: "slider.horizontal.3").tag("Presets")
                 Label("Sound", systemImage: "speaker.wave.2").tag("Alarm")
+                
+                Divider() // Un separador limpio
+                
+                Label("What's New", systemImage: "sparkles").tag("WhatsNew")
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 160, max: 160)
-            .toolbar(removing: .sidebarToggle) // Locks the sidebar
+            .toolbar(removing: .sidebarToggle)
         } detail: {
-            switch selection {
+            switch model.settingsSelection {
             case "Appearance": AppearanceSettings()
             case "Presets": PresetsSettings()
             case "Alarm": AlarmSettings()
+            case "WhatsNew": WhatsNewView()
             default: Text("Select an option")
             }
         }
         .frame(width: 600, height: 420)
+    }
+}
+
+struct WhatsNewView: View {
+    @Environment(PomodoroModel.self) var model
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 30) {
+            
+            Text("What's New").font(.largeTitle.bold())
+            
+            VStack(alignment: .leading, spacing: 24) {
+                // Feature 1
+                HStack(alignment: .top, spacing: 16) {
+                    Image(systemName: "magicmouse.fill")
+                        .font(.title)
+                        .foregroundColor(model.accentColor)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Right-Click Menu").font(.headline)
+                        Text("You can now right-click the menu bar icon to quickly access settings or safely quit the application.")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Feature 2
+                HStack(alignment: .top, spacing: 16) {
+                    Image(systemName: "drop.fill")
+                        .font(.title)
+                        .foregroundColor(model.accentColor)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Liquid Glass Settings").font(.headline)
+                        Text("The settings button inside the popover now features a beautiful, translucent native material design.")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.top, 10)
+            
+            Spacer()
+        }
+        .padding(40)
     }
 }
 

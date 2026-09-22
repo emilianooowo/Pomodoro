@@ -1,5 +1,18 @@
 import SwiftUI
 
+struct LiquidGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay( Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.6), .clear, .black.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1) )
+            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+    }
+}
+
+extension View {
+    func liquidGlass() -> some View { self.modifier(LiquidGlassModifier()) }
+}
+
 // MARK: - Smart Modifiers
 struct PresetGlassModifier: ViewModifier {
     var isActive: Bool
@@ -77,17 +90,20 @@ struct ContentView: View {
                 .onHover { h in if h && customMinutes > 0 && model.state == .idle { NSCursor.pointingHand.set() } }
                 
                 // Settings
-                HStack {
-                    Spacer()
-                    Button(action: { NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary.opacity(0.6))
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .onHover { h in if h { NSCursor.pointingHand.set() } }
-                }
+                                HStack {
+                                    Spacer()
+                                    
+                                    SettingsLink {
+                                        Image(systemName: "gearshape.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 36, height: 36)
+                                            .liquidGlass()
+                                    }
+                                    .buttonStyle(.plain)
+                                    .focusable(false)
+                                    .onHover { h in if h { NSCursor.pointingHand.set() } }
+                                }
             }
             .frame(height: 20)
             

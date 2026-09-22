@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 
+@MainActor
 @Observable
 class PomodoroModel {
     static let shared = PomodoroModel()
@@ -11,56 +12,64 @@ class PomodoroModel {
     var totalDuration: TimeInterval = 0
     var overtime: TimeInterval = 0
     
-    private var audioPlayer: AVAudioPlayer?
-    private var timer: Timer?
+    var settingsSelection: String? = "Appearance"
     
+    private var audioPlayer: AVAudioPlayer?
+    
+    // Reemplazamos Timer con Task para cumplir con Swift 6
+    private var timerTask: Task<Void, Never>?
+    private var alarmTask: Task<Void, Never>?
+    
+    // MARK: - Ajustes Guardados
     var presets: [Double] = UserDefaults.standard.array(forKey: "presets") as? [Double] ?? [5, 15, 25, 50] {
         didSet { UserDefaults.standard.set(presets, forKey: "presets") }
     }
+    
     var alarmSound: String = UserDefaults.standard.string(forKey: "alarmSound") ?? "Ping" {
         didSet { UserDefaults.standard.set(alarmSound, forKey: "alarmSound") }
     }
+    
     var menuIcon: String = UserDefaults.standard.string(forKey: "menuIcon") ?? "timer" {
         didSet {
             UserDefaults.standard.set(menuIcon, forKey: "menuIcon")
             updateMenuIcon()
         }
     }
+    
     var maxCustomTime: Double = UserDefaults.standard.double(forKey: "maxCustomTime") == 0 ? 60 : UserDefaults.standard.double(forKey: "maxCustomTime") {
         didSet { UserDefaults.standard.set(maxCustomTime, forKey: "maxCustomTime") }
     }
-        var accentColor: Color = {
-            if UserDefaults.standard.object(forKey: "accentColorR") != nil {
-                let r = UserDefaults.standard.double(forKey: "accentColorR")
-                let g = UserDefaults.standard.double(forKey: "accentColorG")
-                let b = UserDefaults.standard.double(forKey: "accentColorB")
-                return Color(red: r, green: g, blue: b)
-            }
-            return .blue
-        }() {
-            didSet {
-                if let nsColor = NSColor(accentColor).usingColorSpace(.sRGB) {
-                    UserDefaults.standard.set(nsColor.redComponent, forKey: "accentColorR")
-                    UserDefaults.standard.set(nsColor.greenComponent, forKey: "accentColorG")
-                    UserDefaults.standard.set(nsColor.blueComponent, forKey: "accentColorB")
-                }
+    
+    var accentColor: Color = {
+        if UserDefaults.standard.object(forKey: "accentColorR") != nil {
+            let r = UserDefaults.standard.double(forKey: "accentColorR")
+            let g = UserDefaults.standard.double(forKey: "accentColorG")
+            let b = UserDefaults.standard.double(forKey: "accentColorB")
+            return Color(red: r, green: g, blue: b)
+        }
+        return .blue
+    }() {
+        didSet {
+            if let nsColor = NSColor(accentColor).usingColorSpace(.sRGB) {
+                UserDefaults.standard.set(nsColor.redComponent, forKey: "accentColorR")
+                UserDefaults.standard.set(nsColor.greenComponent, forKey: "accentColorG")
+                UserDefaults.standard.set(nsColor.blueComponent, forKey: "accentColorB")
             }
         }
+    }
     
-    // MARK: - Visual Logic
+    // MARK: - Lógica Visual
     var progress: Double {
         if totalDuration == 0 { return 1.0 }
         return max(0, timeRemaining / totalDuration)
     }
     
     var timeColor: Color {
-            switch state {
-            case .idle, .running, .paused:
-                return .primary
-            case .overtime:
-                return .red
-            }
+        switch state {
+        case .idle, .running, .paused: return .primary
+        case .overtime: return .red
         }
+    }
     
     var timeString: String {
         if state == .overtime { return "+\(formatTime(overtime))" }
@@ -73,7 +82,7 @@ class PomodoroModel {
         return String(format: "%02d:%02d", minutes, seconds)
     }
     
-    // MARK: - Controls
+    // MARK: - Controles
     func start(minutes: Double) {
         totalDuration = minutes * 60
         timeRemaining = totalDuration
@@ -82,17 +91,19 @@ class PomodoroModel {
         stopAudio()
         startTimer()
     }
+    
     func toggle() {
         switch state {
-        case .running: state = .paused; timer?.invalidate()
+        case .running: state = .paused; timerTask?.cancel()
         case .paused: state = .running; startTimer()
         case .overtime: stop()
         case .idle: break
         }
     }
+    
     func stop() {
-        timer?.invalidate()
-        timer = nil
+        timerTask?.cancel()
+        timerTask = nil
         state = .idle
         timeRemaining = 0
         overtime = 0
@@ -101,9 +112,17 @@ class PomodoroModel {
     }
     
     private func startTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.tick() }
+        timerTask?.cancel()
+        timerTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                if !Task.isCancelled {
+                    self.tick()
+                }
+            }
+        }
     }
+    
     private func tick() {
         if state == .running {
             if timeRemaining > 0 {
@@ -118,7 +137,7 @@ class PomodoroModel {
         }
     }
     
-    // MARK: - Alarm & Icon Logic
+    // MARK: - Alarma & Iconos
     private func updateMenuIcon() {
         NotificationCenter.default.post(name: NSNotification.Name("UpdateMenuIcon"), object: nil)
     }
@@ -139,11 +158,28 @@ class PomodoroModel {
             audioPlayer?.numberOfLoops = -1
             audioPlayer?.play()
             
-            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] t in
-                guard let self = self, self.state == .overtime, let player = self.audioPlayer else { t.invalidate(); return }
-                if player.volume < 1.0 { player.volume += 0.15 } else { t.invalidate() }
+            // Reemplazamos el Timer de la alarma progresiva por un Task loop
+            alarmTask?.cancel()
+            alarmTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2))
+                    if !Task.isCancelled, self.state == .overtime, let player = self.audioPlayer {
+                        if player.volume < 1.0 {
+                            player.volume += 0.15
+                        } else {
+                            self.alarmTask?.cancel()
+                        }
+                    } else {
+                        self.alarmTask?.cancel()
+                    }
+                }
             }
-        } catch { print("Error playing \(name)") }
+        } catch { print("Error reproduciendo \(name)") }
     }
-    private func stopAudio() { audioPlayer?.stop(); audioPlayer = nil }
+    
+    private func stopAudio() {
+        audioPlayer?.stop()
+        audioPlayer = nil
+        alarmTask?.cancel()
+    }
 }
