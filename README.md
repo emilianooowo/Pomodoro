@@ -3,7 +3,7 @@
 A compact focus timer that lives in the macOS menu bar. Built with SwiftUI and AppKit.
 
 <p>
-  <img src="tomatiicon.png" width="128" alt="Tomati app icon">
+  <img src="tomatiicon.svg" width="128" alt="Tomati app icon">
 </p>
 
 Tomati stays out of the way while keeping the controls you need close at hand. Choose a duration, start a quick preset, or run a complete focus session with automatic breaks.
