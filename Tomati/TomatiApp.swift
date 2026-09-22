@@ -204,7 +204,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func generateProgressIcon(iconName: String, progress: Double) -> NSImage {
         let fillRatio = 1.0 - progress
         let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
-        guard let baseImage = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)?.withSymbolConfiguration(config) else { return NSImage() }
+        let baseImage: NSImage
+        if iconName == "tomato" {
+            baseImage = generateTomatoIcon()
+        } else {
+            guard let symbol = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)?.withSymbolConfiguration(config) else {
+                return generateTomatoIcon()
+            }
+            baseImage = symbol
+        }
         let size = baseImage.size
         let image = NSImage(size: size)
         image.lockFocus()
@@ -215,6 +223,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSBezierPath.clip(clipRect)
         baseImage.draw(in: NSRect(origin: .zero, size: size), from: .zero, operation: .sourceOver, fraction: 1.0)
         NSGraphicsContext.current?.restoreGraphicsState()
+        image.unlockFocus()
+        image.isTemplate = true
+        return image
+    }
+
+    private func generateTomatoIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        image.lockFocus()
+
+        NSColor.black.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 2, y: 1.5, width: 14, height: 13)).fill()
+
+        let leaves = NSBezierPath()
+        leaves.move(to: NSPoint(x: 9, y: 13))
+        leaves.line(to: NSPoint(x: 5.2, y: 16.2))
+        leaves.line(to: NSPoint(x: 8.2, y: 15.5))
+        leaves.line(to: NSPoint(x: 9, y: 17.2))
+        leaves.line(to: NSPoint(x: 9.8, y: 15.5))
+        leaves.line(to: NSPoint(x: 13.2, y: 16.2))
+        leaves.close()
+        leaves.fill()
+
         image.unlockFocus()
         image.isTemplate = true
         return image

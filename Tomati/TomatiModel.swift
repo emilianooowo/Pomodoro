@@ -98,7 +98,14 @@ class TomatiModel {
         didSet { UserDefaults.standard.set(alarmSound, forKey: "alarmSound") }
     }
     
-    var menuIcon: String = UserDefaults.standard.string(forKey: "menuIcon") ?? "timer" {
+    var menuIcon: String = {
+        let validIcons = ["hourglass", "clock", "timer", "circle", "tomato"]
+        guard let savedIcon = UserDefaults.standard.string(forKey: "menuIcon"),
+              validIcons.contains(savedIcon) else {
+            return "tomato"
+        }
+        return savedIcon
+    }() {
         didSet {
             UserDefaults.standard.set(menuIcon, forKey: "menuIcon")
             updateMenuIcon()

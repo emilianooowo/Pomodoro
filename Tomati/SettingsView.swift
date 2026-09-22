@@ -13,12 +13,16 @@ struct SettingsView: View {
                     .tag("General")
                 Label("Sessions", systemImage: "rectangle.stack")
                     .tag("Sessions")
+                Label("About Tomati", systemImage: "info.circle")
+                    .tag("About")
             }
             .navigationSplitViewColumnWidth(min: 145, ideal: 145, max: 145)
             .toolbar(removing: .sidebarToggle)
         } detail: {
             if model.settingsSelection == "Sessions" {
                 SessionsSettingsView()
+            } else if model.settingsSelection == "About" {
+                AboutTomatiView()
             } else {
                 GeneralSettingsView()
             }
@@ -30,7 +34,13 @@ struct SettingsView: View {
 private struct GeneralSettingsView: View {
     @Environment(TomatiModel.self) private var model
 
-    private let icons = ["timer", "clock", "hourglass", "alarm", "stopwatch", "circle.dashed"]
+    private let icons = [
+        MenuIconChoice(id: "hourglass", name: "Hourglass"),
+        MenuIconChoice(id: "clock", name: "Clock"),
+        MenuIconChoice(id: "timer", name: "Timer"),
+        MenuIconChoice(id: "circle", name: "Circle"),
+        MenuIconChoice(id: "tomato", name: "Tomati")
+    ]
     private let sounds = ["Ping", "Glass", "Basso", "Blow", "Bottle", "Frog", "Tink"]
 
     var body: some View {
@@ -49,26 +59,27 @@ private struct GeneralSettingsView: View {
                         Divider().frame(height: 24)
 
                         HStack(spacing: 7) {
-                            ForEach(icons, id: \.self) { icon in
+                            ForEach(icons) { icon in
                                 Button {
-                                    model.menuIcon = icon
+                                    model.menuIcon = icon.id
                                 } label: {
-                                    Image(systemName: icon)
+                                    MenuIconGlyph(icon: icon.id)
                                         .font(.system(size: 15, weight: .medium))
                                         .frame(width: 32, height: 32)
                                         .background(
-                                            model.menuIcon == icon
+                                            model.menuIcon == icon.id
                                                 ? model.accentColor.opacity(0.18)
                                                 : Color.primary.opacity(0.045),
                                             in: RoundedRectangle(cornerRadius: 8)
                                         )
                                         .overlay {
                                             RoundedRectangle(cornerRadius: 8)
-                                                .stroke(model.menuIcon == icon ? model.accentColor : .clear, lineWidth: 1.5)
+                                                .stroke(model.menuIcon == icon.id ? model.accentColor : .clear, lineWidth: 1.5)
                                         }
                                 }
                                 .buttonStyle(.plain)
-                                .help(icon.capitalized)
+                                .help(icon.name)
+                                .accessibilityLabel(icon.name)
                             }
                         }
                     }
@@ -112,12 +123,6 @@ private struct GeneralSettingsView: View {
                     .frame(width: 180, height: 26)
                 }
 
-                Divider()
-
-                Text("Tomati 1.5.0")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .padding(30)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -141,6 +146,74 @@ private struct GeneralSettingsView: View {
 
             content()
         }
+    }
+}
+
+private struct MenuIconChoice: Identifiable {
+    let id: String
+    let name: String
+}
+
+private struct MenuIconGlyph: View {
+    let icon: String
+
+    var body: some View {
+        if icon == "tomato" {
+            ZStack {
+                Ellipse()
+                    .strokeBorder(lineWidth: 1.7)
+                    .frame(width: 16, height: 13)
+                    .offset(y: 1.5)
+
+                Image(systemName: "leaf.fill")
+                    .font(.system(size: 7, weight: .bold))
+                    .rotationEffect(.degrees(-18))
+                    .offset(x: 1, y: -6)
+            }
+            .frame(width: 18, height: 18)
+        } else {
+            Image(systemName: icon)
+        }
+    }
+}
+
+private struct AboutTomatiView: View {
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    private var build: String? {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .accessibilityHidden(true)
+
+            Text("Tomati")
+                .font(.largeTitle.bold())
+
+            Text("Made by Emiliano")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            Text(build.map { "Version \(version) (\($0))" } ?? "Version \(version)")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+
+            Link(destination: URL(string: "https://github.com/emilianooowo/Tomati")!) {
+                Label("View Repository on GitHub", systemImage: "arrow.up.right.square")
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
     }
 }
 
