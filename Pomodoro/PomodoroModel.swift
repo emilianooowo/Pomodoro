@@ -1,16 +1,47 @@
 import SwiftUI
 import AVFoundation
 
+struct FocusSession: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var name: String
+    var intervalCount: Int
+    var focusMinutes: Double
+    var breakMinutes: Double
+    var accentRed: Double? = nil
+    var accentGreen: Double? = nil
+    var accentBlue: Double? = nil
+
+    var accentColor: Color {
+        Color(
+            red: accentRed ?? 0.2,
+            green: accentGreen ?? 0.48,
+            blue: accentBlue ?? 0.95
+        )
+    }
+
+    mutating func setAccentColor(_ color: Color) {
+        guard let convertedColor = NSColor(color).usingColorSpace(.sRGB) else { return }
+        accentRed = Double(convertedColor.redComponent)
+        accentGreen = Double(convertedColor.greenComponent)
+        accentBlue = Double(convertedColor.blueComponent)
+    }
+}
+
 @MainActor
 @Observable
 class PomodoroModel {
     static let shared = PomodoroModel()
     enum TimerState { case idle, running, paused, overtime }
+    enum SessionPhase { case focus, rest }
     
     var state: TimerState = .idle { didSet { updateMenuIcon() } }
     var timeRemaining: TimeInterval = 0
     var totalDuration: TimeInterval = 0
     var overtime: TimeInterval = 0
+    var activeSession: FocusSession?
+    var sessionPhase: SessionPhase?
+    var currentSessionInterval: Int = 0
+    var settingsSelection: String? = "General"
     
     private var audioPlayer: AVAudioPlayer?
     
@@ -31,6 +62,35 @@ class PomodoroModel {
                 presets = sanitizedValues
             }
             UserDefaults.standard.set(sanitizedValues, forKey: "presets")
+        }
+    }
+
+    var sessions: [FocusSession] = {
+        guard let data = UserDefaults.standard.data(forKey: "focusSessions"),
+              let saved = try? JSONDecoder().decode([FocusSession].self, from: data) else {
+            return []
+        }
+        return saved
+    }() {
+        didSet {
+            let sanitizedSessions = sessions.map { session in
+                FocusSession(
+                    id: session.id,
+                    name: session.name,
+                    intervalCount: min(max(session.intervalCount, 1), 24),
+                    focusMinutes: min(max(session.focusMinutes.isFinite ? session.focusMinutes : 30, 1), 1_440),
+                    breakMinutes: min(max(session.breakMinutes.isFinite ? session.breakMinutes : 5, 1), 1_440),
+                    accentRed: session.accentRed,
+                    accentGreen: session.accentGreen,
+                    accentBlue: session.accentBlue
+                )
+            }
+            if sessions != sanitizedSessions {
+                sessions = sanitizedSessions
+            }
+            if let data = try? JSONEncoder().encode(sanitizedSessions) {
+                UserDefaults.standard.set(data, forKey: "focusSessions")
+            }
         }
     }
     
@@ -92,7 +152,23 @@ class PomodoroModel {
     }
 
     private var accentLuminance: Double {
-        guard let color = NSColor(accentColor).usingColorSpace(.sRGB) else { return 0 }
+        luminance(of: accentColor)
+    }
+
+    var timerAccentColor: Color {
+        activeSession?.accentColor ?? accentColor
+    }
+
+    var timerAccentForegroundColor: Color {
+        luminance(of: timerAccentColor) > 0.46 ? .black : .white
+    }
+
+    var timerAccentOpposingColor: Color {
+        luminance(of: timerAccentColor) > 0.46 ? .white : .black
+    }
+
+    private func luminance(of sourceColor: Color) -> Double {
+        guard let color = NSColor(sourceColor).usingColorSpace(.sRGB) else { return 0 }
 
         func linearComponent(_ component: CGFloat) -> Double {
             let value = Double(component)
@@ -108,6 +184,13 @@ class PomodoroModel {
         if state == .overtime { return "+\(formatTime(overtime))" }
         return formatTime(timeRemaining)
     }
+
+    var sessionStatusText: String? {
+        guard let activeSession else { return nil }
+        guard let sessionPhase else { return "\(displayName(for: activeSession)) · Complete" }
+        let phaseName = sessionPhase == .focus ? "Focus" : "Rest"
+        return "\(displayName(for: activeSession)) · \(phaseName) \(currentSessionInterval)/\(activeSession.intervalCount)"
+    }
     
     private func formatTime(_ interval: TimeInterval) -> String {
         let minutes = Int(interval) / 60
@@ -118,12 +201,47 @@ class PomodoroModel {
     // MARK: - Controles
     func start(minutes: Double) {
         guard minutes.isFinite, minutes > 0 else { return }
-        totalDuration = minutes * 60
-        timeRemaining = totalDuration
+        activeSession = nil
+        sessionPhase = nil
+        currentSessionInterval = 0
+        prepareSegment(minutes: minutes)
         overtime = 0
         state = .running
         stopAudio()
         startTimer()
+    }
+
+    func start(session: FocusSession) {
+        guard session.intervalCount > 0, session.focusMinutes > 0, session.breakMinutes > 0 else { return }
+        stopAudio()
+        activeSession = session
+        sessionPhase = .focus
+        currentSessionInterval = 1
+        overtime = 0
+        prepareSegment(minutes: session.focusMinutes)
+        state = .running
+        startTimer()
+    }
+
+    func addSession() {
+        var session = FocusSession(name: "New Session", intervalCount: 3, focusMinutes: 30, breakMinutes: 5)
+        session.setAccentColor(accentColor)
+        sessions.append(session)
+    }
+
+    func removeSession(id: UUID) {
+        sessions.removeAll { $0.id == id }
+    }
+
+    func addPreset(at slot: Int) {
+        guard presets.count < 4 else { return }
+        let suggestedValues = [5.0, 15.0, 25.0, 50.0]
+        presets.append(suggestedValues[min(max(slot, 0), suggestedValues.count - 1)])
+    }
+
+    func removePreset(at index: Int) {
+        guard presets.count > 1, presets.indices.contains(index) else { return }
+        presets.remove(at: index)
     }
     
     func toggle() {
@@ -142,6 +260,9 @@ class PomodoroModel {
         timeRemaining = 0
         totalDuration = 0
         overtime = 0
+        activeSession = nil
+        sessionPhase = nil
+        currentSessionInterval = 0
         stopAudio()
     }
     
@@ -164,12 +285,50 @@ class PomodoroModel {
                 updateMenuIcon()
             } else {
                 timeRemaining = 0
-                state = .overtime
-                playProgressiveAlarm()
+                if activeSession != nil {
+                    advanceSession()
+                } else {
+                    state = .overtime
+                    playProgressiveAlarm()
+                }
             }
         } else if state == .overtime {
             overtime += 1
         }
+    }
+
+    private func prepareSegment(minutes: Double) {
+        totalDuration = minutes * 60
+        timeRemaining = totalDuration
+        updateMenuIcon()
+    }
+
+    private func advanceSession() {
+        guard let activeSession, let sessionPhase else { return }
+
+        switch sessionPhase {
+        case .focus:
+            if currentSessionInterval >= activeSession.intervalCount {
+                self.sessionPhase = nil
+                state = .overtime
+                playProgressiveAlarm()
+            } else {
+                self.sessionPhase = .rest
+                prepareSegment(minutes: activeSession.breakMinutes)
+                playSound(name: alarmSound, isPreview: true)
+            }
+
+        case .rest:
+            currentSessionInterval += 1
+            self.sessionPhase = .focus
+            prepareSegment(minutes: activeSession.focusMinutes)
+            playSound(name: alarmSound, isPreview: true)
+        }
+    }
+
+    private func displayName(for session: FocusSession) -> String {
+        let trimmedName = session.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty ? "Untitled Session" : trimmedName
     }
     
     // MARK: - Alarma & Iconos

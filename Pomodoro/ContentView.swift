@@ -127,16 +127,16 @@ struct ContentView: View {
 
     private var timerForeground: Color {
         if model.state == .overtime { return .red }
-        return model.progress > 0.72 ? model.accentForegroundColor : .primary
+        return model.progress > 0.72 ? model.timerAccentForegroundColor : .primary
     }
 
     private var controlForeground: Color {
         if model.state == .overtime { return .red }
-        return model.progress > 0.23 ? model.accentForegroundColor : .primary
+        return model.progress > 0.23 ? model.timerAccentForegroundColor : .primary
     }
 
     private var timerShadowColor: Color {
-        if model.progress > 0.72 { return model.accentOpposingColor.opacity(0.32) }
+        if model.progress > 0.72 { return model.timerAccentOpposingColor.opacity(0.32) }
         return colorScheme == .light ? .white.opacity(0.42) : .black.opacity(0.35)
     }
 
@@ -164,6 +164,15 @@ struct ContentView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
             }
 
+            if !isIdle, let sessionStatus = model.sessionStatusText {
+                Text(sessionStatus)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(timerForeground.opacity(0.88))
+                    .lineLimit(1)
+                    .frame(height: 12)
+                    .transition(.opacity)
+            }
+
             timerRow
                 .zIndex(1)
 
@@ -174,7 +183,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, isIdle ? 12 : 10)
-        .frame(width: isIdle ? 230 : 220)
+        .frame(width: 230)
         .fixedSize(horizontal: true, vertical: true)
         .background(timerProgressBackground)
         .animation(.easeInOut(duration: 0.24), value: model.state)
@@ -256,14 +265,49 @@ struct ContentView: View {
 
             Spacer(minLength: 12)
 
-            Button {
-                NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
-            } label: {
-                GlassIcon(name: "gearshape.fill", size: 28)
+            HStack(spacing: 6) {
+                Menu {
+                    if model.sessions.isEmpty {
+                        Button("Create a Session…") {
+                            model.settingsSelection = "Sessions"
+                            NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+                        }
+                    } else {
+                        ForEach(model.sessions) { session in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.24)) {
+                                    model.start(session: session)
+                                }
+                            } label: {
+                                Text("\(session.name.isEmpty ? "Untitled Session" : session.name) · \(session.intervalCount)×")
+                            }
+                        }
+
+                        Divider()
+
+                        Button("Manage Sessions…") {
+                            model.settingsSelection = "Sessions"
+                            NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+                        }
+                    }
+                } label: {
+                    GlassIcon(name: "rectangle.stack.fill", size: 28)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Start a session")
+
+                Button {
+                    model.settingsSelection = "General"
+                    NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+                } label: {
+                    GlassIcon(name: "gearshape.fill", size: 28)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Settings")
             }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .help("Settings")
         }
         .frame(height: 28)
     }
@@ -293,7 +337,7 @@ struct ContentView: View {
     private var timerProgressBackground: some View {
         GeometryReader { geometry in
             if !isIdle {
-                model.accentColor
+                model.timerAccentColor
                     .opacity(0.82)
                     .frame(width: geometry.size.width * CGFloat(model.progress))
                     .frame(maxWidth: .infinity, alignment: .leading)

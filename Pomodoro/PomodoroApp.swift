@@ -80,6 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - Acciones del Menú
     @objc func openSettings() {
+        PomodoroModel.shared.settingsSelection = "General"
         presentSettingsWindow()
     }
         
@@ -93,7 +94,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsView = SettingsView()
             .environment(PomodoroModel.shared)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 620, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 600),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -126,7 +127,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let targetSize = model.state == .idle
             ? NSSize(width: 230, height: 142)
-            : NSSize(width: 220, height: 70)
+            : NSSize(width: 230, height: model.activeSession == nil ? 70 : 92)
         if popover.contentSize != targetSize {
             resizePopover(to: targetSize)
         }
