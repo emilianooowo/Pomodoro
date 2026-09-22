@@ -21,7 +21,7 @@ Pomodoro Bar gets out of your way. There is no Dock icon, no floating windows, a
 
 Since this app is open-source and not distributed through the Mac App Store, macOS Gatekeeper requires a specific step the first time you open it.
 
-1. Go to the [Releases](https://github.com/emilianooowo/Pomodoro) page and download the latest `Pomodoro.zip`.
+1. Go to the [Releases](https://github.com/emilianooowo/Pomodoro/releases) page and download the latest `Pomodoro.zip`.
 2. Unzip the file and drag `Pomodoro.app` to your **Applications** folder.
 3. **First Launch Only:** Right-click (or Control-click) on the `Pomodoro.app` and select **Open**. 
 4. macOS will show a warning asking if you are sure you want to open it. Click **Open**. 
