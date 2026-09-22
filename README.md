@@ -5,7 +5,7 @@ Pomodoro App for Mac (Menu Bar App)
 
 A hyper-minimalist, premium Pomodoro timer that lives exclusively in your macOS Menu Bar. Built with SwiftUI, designed for zero friction.
 
-![App Icon](link_a_tu_icono.png) <!-- Reemplaza esto con el enlace a tu icono o una captura -->
+![App Icon](https://github.com/emilianooowo/Pomodoro/blob/main/pomodoroicon.png) <!-- Reemplaza esto con el enlace a tu icono o una captura -->
 
 Pomodoro Bar gets out of your way. There is no Dock icon, no floating windows, and no unnecessary clicks. It uses fluid hover gestures, native Liquid Glass, and a dynamic menu bar icon that fills up as your timer progresses.
 
