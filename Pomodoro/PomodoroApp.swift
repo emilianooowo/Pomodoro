@@ -1,6 +1,10 @@
 import SwiftUI
 import AppKit
 
+extension Notification.Name {
+    static let showPomodoroSettings = Notification.Name("ShowPomodoroSettings")
+}
+
 @main
 struct PomoBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -13,15 +17,19 @@ struct PomoBarApp: App {
     }
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
+    private var settingsWindow: NSWindow?
+    private var overtimePulseTimer: Timer?
+    private var isPulseRed = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         let contentView = ContentView().environment(PomodoroModel.shared)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 260, height: 200)
+        popover.contentSize = NSSize(width: 230, height: 142)
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: contentView)
@@ -36,6 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuIcon), name: NSNotification.Name("UpdateMenuIcon"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(showSettingsFromNotification), name: .showPomodoroSettings, object: nil)
     }
     
     // 2. Discriminador de Clicks
@@ -52,10 +61,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // 3. El Menú Nativo (Click Derecho)
     func showContextMenu(_ sender: NSStatusBarButton) {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "What's New", action: #selector(openWhatsNew), keyEquivalent: ""))
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit Pomodoro", action: #selector(quitApp), keyEquivalent: "q"))
+
+        let quitItem = NSMenuItem(title: "Quit Pomodoro", action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
         
         // Si el popover estaba abierto, ciérralo
         if popover.isShown { popover.performClose(nil) }
@@ -65,17 +79,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     // MARK: - Acciones del Menú
-        @objc func openSettings() {
-            PomodoroModel.shared.settingsSelection = "Appearance"
-            // Usamos NSSelectorFromString para evitar la advertencia de SwiftUI
-            NSApp.sendAction(NSSelectorFromString("showSettingsWindow:"), to: nil, from: nil)
-        }
+    @objc func openSettings() {
+        presentSettingsWindow()
+    }
         
-        @objc func openWhatsNew() {
-            PomodoroModel.shared.settingsSelection = "WhatsNew"
-            NSApp.sendAction(NSSelectorFromString("showSettingsWindow:"), to: nil, from: nil)
+    private func presentSettingsWindow() {
+        if let settingsWindow {
+            settingsWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
         }
-    
+
+        let settingsView = SettingsView()
+            .environment(PomodoroModel.shared)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Pomodoro Settings"
+        window.isReleasedWhenClosed = false
+        window.contentViewController = NSHostingController(rootView: settingsView)
+        window.center()
+
+        settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func showSettingsFromNotification(_ notification: Notification) {
+        presentSettingsWindow()
+    }
+
     @objc func quitApp() {
         NSApp.terminate(nil)
     }
@@ -86,6 +122,82 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let model = PomodoroModel.shared
         let currentProgress = model.state == .idle ? 0.0 : model.progress
         button.image = generateProgressIcon(iconName: model.menuIcon, progress: currentProgress)
+        updateOvertimePulse(isOvertime: model.state == .overtime)
+
+        let targetSize = model.state == .idle
+            ? NSSize(width: 230, height: 142)
+            : NSSize(width: 220, height: 70)
+        if popover.contentSize != targetSize {
+            resizePopover(to: targetSize)
+        }
+    }
+
+    private func resizePopover(to targetSize: NSSize) {
+        guard popover.isShown else {
+            popover.contentSize = targetSize
+            return
+        }
+
+        guard let window = popover.contentViewController?.view.window else {
+            popover.contentSize = targetSize
+            return
+        }
+
+        let targetContentRect = NSRect(origin: .zero, size: targetSize)
+        let targetWindowSize = window.frameRect(forContentRect: targetContentRect).size
+        var targetFrame = window.frame
+        targetFrame.origin.x += (targetFrame.width - targetWindowSize.width) / 2
+        targetFrame.origin.y += targetFrame.height - targetWindowSize.height
+        targetFrame.size = targetWindowSize
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.24
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(targetFrame, display: true)
+        } completionHandler: {
+            MainActor.assumeIsolated {
+                self.popover.contentSize = targetSize
+            }
+        }
+    }
+
+    private func updateOvertimePulse(isOvertime: Bool) {
+        guard isOvertime else {
+            overtimePulseTimer?.invalidate()
+            overtimePulseTimer = nil
+            return
+        }
+
+        guard overtimePulseTimer == nil else { return }
+        isPulseRed = true
+        tintMenuBarIcon(.systemRed)
+
+        let timer = Timer(timeInterval: 0.55, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.isPulseRed.toggle()
+                self.tintMenuBarIcon(self.isPulseRed ? .systemRed : .white)
+            }
+        }
+        overtimePulseTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func tintMenuBarIcon(_ color: NSColor) {
+        guard let sourceImage = statusItem.button?.image else { return }
+        let tintedImage = NSImage(size: sourceImage.size)
+        tintedImage.lockFocus()
+        sourceImage.draw(
+            in: NSRect(origin: .zero, size: sourceImage.size),
+            from: .zero,
+            operation: .sourceOver,
+            fraction: 1
+        )
+        color.setFill()
+        NSRect(origin: .zero, size: sourceImage.size).fill(using: .sourceAtop)
+        tintedImage.unlockFocus()
+        tintedImage.isTemplate = false
+        statusItem.button?.image = tintedImage
     }
     
     func generateProgressIcon(iconName: String, progress: Double) -> NSImage {

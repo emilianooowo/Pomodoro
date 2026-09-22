@@ -12,8 +12,6 @@ class PomodoroModel {
     var totalDuration: TimeInterval = 0
     var overtime: TimeInterval = 0
     
-    var settingsSelection: String? = "Appearance"
-    
     private var audioPlayer: AVAudioPlayer?
     
     // Reemplazamos Timer con Task para cumplir con Swift 6
@@ -21,8 +19,19 @@ class PomodoroModel {
     private var alarmTask: Task<Void, Never>?
     
     // MARK: - Ajustes Guardados
-    var presets: [Double] = UserDefaults.standard.array(forKey: "presets") as? [Double] ?? [5, 15, 25, 50] {
-        didSet { UserDefaults.standard.set(presets, forKey: "presets") }
+    var presets: [Double] = {
+        let defaults = [5.0, 15.0, 25.0, 50.0]
+        guard let saved = UserDefaults.standard.array(forKey: "presets") as? [Double] else { return defaults }
+        let validValues = saved.prefix(4).filter { $0.isFinite && $0 > 0 }
+        return validValues.isEmpty ? defaults : Array(validValues)
+    }() {
+        didSet {
+            let sanitizedValues = presets.prefix(4).map { $0.isFinite ? min(max($0, 1), 1_440) : 25 }
+            if presets != sanitizedValues {
+                presets = sanitizedValues
+            }
+            UserDefaults.standard.set(sanitizedValues, forKey: "presets")
+        }
     }
     
     var alarmSound: String = UserDefaults.standard.string(forKey: "alarmSound") ?? "Ping" {
@@ -36,8 +45,18 @@ class PomodoroModel {
         }
     }
     
-    var maxCustomTime: Double = UserDefaults.standard.double(forKey: "maxCustomTime") == 0 ? 60 : UserDefaults.standard.double(forKey: "maxCustomTime") {
-        didSet { UserDefaults.standard.set(maxCustomTime, forKey: "maxCustomTime") }
+    var maxCustomTime: Double = {
+        let savedValue = UserDefaults.standard.double(forKey: "maxCustomTime")
+        guard savedValue.isFinite, savedValue > 0 else { return 60 }
+        return min(savedValue, 1_440)
+    }() {
+        didSet {
+            let sanitizedValue = maxCustomTime.isFinite ? min(max(maxCustomTime, 1), 1_440) : 60
+            if maxCustomTime != sanitizedValue {
+                maxCustomTime = sanitizedValue
+            }
+            UserDefaults.standard.set(sanitizedValue, forKey: "maxCustomTime")
+        }
     }
     
     var accentColor: Color = {
@@ -60,15 +79,29 @@ class PomodoroModel {
     
     // MARK: - Lógica Visual
     var progress: Double {
-        if totalDuration == 0 { return 1.0 }
-        return max(0, timeRemaining / totalDuration)
+        guard totalDuration > 0 else { return 0 }
+        return min(1, max(0, timeRemaining / totalDuration))
     }
-    
-    var timeColor: Color {
-        switch state {
-        case .idle, .running, .paused: return .primary
-        case .overtime: return .red
+
+    var accentForegroundColor: Color {
+        accentLuminance > 0.46 ? .black : .white
+    }
+
+    var accentOpposingColor: Color {
+        accentLuminance > 0.46 ? .white : .black
+    }
+
+    private var accentLuminance: Double {
+        guard let color = NSColor(accentColor).usingColorSpace(.sRGB) else { return 0 }
+
+        func linearComponent(_ component: CGFloat) -> Double {
+            let value = Double(component)
+            return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
         }
+
+        return 0.2126 * linearComponent(color.redComponent)
+            + 0.7152 * linearComponent(color.greenComponent)
+            + 0.0722 * linearComponent(color.blueComponent)
     }
     
     var timeString: String {
@@ -84,6 +117,7 @@ class PomodoroModel {
     
     // MARK: - Controles
     func start(minutes: Double) {
+        guard minutes.isFinite, minutes > 0 else { return }
         totalDuration = minutes * 60
         timeRemaining = totalDuration
         overtime = 0
@@ -106,9 +140,9 @@ class PomodoroModel {
         timerTask = nil
         state = .idle
         timeRemaining = 0
+        totalDuration = 0
         overtime = 0
         stopAudio()
-        updateMenuIcon()
     }
     
     private func startTimer() {
@@ -125,10 +159,11 @@ class PomodoroModel {
     
     private func tick() {
         if state == .running {
-            if timeRemaining > 0 {
+            if timeRemaining > 1 {
                 timeRemaining -= 1
                 updateMenuIcon()
             } else {
+                timeRemaining = 0
                 state = .overtime
                 playProgressiveAlarm()
             }
@@ -165,7 +200,7 @@ class PomodoroModel {
                     try? await Task.sleep(for: .seconds(2))
                     if !Task.isCancelled, self.state == .overtime, let player = self.audioPlayer {
                         if player.volume < 1.0 {
-                            player.volume += 0.15
+                            player.volume = min(1, player.volume + 0.15)
                         } else {
                             self.alarmTask?.cancel()
                         }

@@ -4,231 +4,302 @@ struct LiquidGlassModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(.ultraThinMaterial, in: Circle())
-            .overlay( Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.6), .clear, .black.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1) )
-            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+            .overlay {
+                Circle().strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.55), .clear, .black.opacity(0.12)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            }
+            .shadow(color: .black.opacity(0.14), radius: 3, x: 0, y: 1.5)
     }
 }
 
 extension View {
-    func liquidGlass() -> some View { self.modifier(LiquidGlassModifier()) }
+    func liquidGlass() -> some View { modifier(LiquidGlassModifier()) }
 }
 
-// MARK: - Smart Modifiers
-struct PresetGlassModifier: ViewModifier {
-    var isActive: Bool
-    var accentColor: Color
-    
-    func body(content: Content) -> some View {
-        Group {
-            if isActive {
-                content
-                    .background(accentColor.gradient)
-                    .shadow(color: accentColor.opacity(0.4), radius: 6, x: 0, y: 3)
-            } else {
-                content
-                    .background(.ultraThinMaterial)
-                    .overlay( Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.6), .clear, .black.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1) )
-                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-            }
-        }
-        .clipShape(Circle())
+private struct GlassIcon: View {
+    let name: String
+    var color: Color = .primary
+    var size: CGFloat = 27
+
+    var body: some View {
+        Image(systemName: name)
+            .font(.system(size: size * 0.4, weight: .semibold))
+            .foregroundStyle(color)
+            .frame(width: size, height: size)
+            .liquidGlass()
     }
 }
 
-// MARK: - Main View
-struct ContentView: View {
-    @Environment(PomodoroModel.self) var model
-    
-    @State private var customMinutes: Double = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var activePreset: Double? = nil
-    @State private var isHoveringSlider: Bool = false
-    
+private struct GlassResetIcon: View {
+    let color: Color
+
     var body: some View {
-        VStack(spacing: 24) {
-            
-            // 1. TOP BAR (Pause/Reset, Play, Settings)
+        Image(systemName: "stop.fill")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(color)
+            .frame(width: 22, height: 22)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.55), .clear, .black.opacity(0.12)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+    }
+}
+
+private struct MinuteScale: View {
+    let maximumMinutes: Int
+    let accentColor: Color
+    @Binding var selectedMinutes: Double
+    @Binding var hoveredMinute: Int?
+    let start: () -> Void
+
+    var body: some View {
+        GeometryReader { geometry in
+            let lastIndex = max(1, maximumMinutes - 1)
+
             ZStack {
-                // Pause & Reset (Stop)
-                HStack(spacing: 16) {
-                    Button(action: { withAnimation { model.toggle() } }) {
-                        Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(model.state == .idle ? .secondary.opacity(0.2) : .primary)
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false) // Elimina el auto-focus del Tab
-                    .disabled(model.state == .idle)
-                    .onHover { h in if h && model.state != .idle { NSCursor.pointingHand.set() } }
-                    
-                    Button(action: { withAnimation { model.stop(); activePreset = nil } }) {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(model.state == .idle ? .secondary.opacity(0.2) : .primary)
-                    }
-                    .buttonStyle(.plain)
-                    .focusable(false)
-                    .disabled(model.state == .idle)
-                    .onHover { h in if h && model.state != .idle { NSCursor.pointingHand.set() } }
-                    
-                    Spacer()
+                ForEach(1...maximumMinutes, id: \.self) { minute in
+                    let isMajor = minute.isMultiple(of: 5)
+                    let isHovered = hoveredMinute == minute
+                    let usableWidth = max(0, geometry.size.width - 2)
+                    let x = maximumMinutes == 1
+                        ? geometry.size.width / 2
+                        : 1 + CGFloat(minute - 1) / CGFloat(lastIndex) * usableWidth
+
+                    Capsule()
+                        .fill(minute <= Int(selectedMinutes) ? accentColor : Color.primary.opacity(0.22))
+                        .frame(
+                            width: 1.8,
+                            height: (isMajor ? 11 : 8) + (isHovered ? 3 : 0)
+                        )
+                        .scaleEffect(isHovered ? 1.16 : 1, anchor: .bottom)
+                        .position(x: x, y: geometry.size.height / 2)
                 }
-                
-                // Play
-                Button(action: {
-                    if customMinutes > 0 && model.state == .idle {
-                        withAnimation { activePreset = nil; model.start(minutes: customMinutes) }
+            }
+            .contentShape(Rectangle())
+            .animation(.spring(response: 0.2, dampingFraction: 0.72), value: hoveredMinute)
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location):
+                    let width = max(1, geometry.size.width)
+                    let ratio = min(max(0, location.x / width), 1)
+                    let minute = Int(round(ratio * CGFloat(lastIndex))) + 1
+                    hoveredMinute = min(maximumMinutes, max(1, minute))
+                    selectedMinutes = Double(hoveredMinute ?? 1)
+                    NSCursor.pointingHand.set()
+                case .ended:
+                    hoveredMinute = nil
+                    NSCursor.arrow.set()
+                }
+            }
+            .onTapGesture(perform: start)
+            .accessibilityLabel("Timer duration")
+            .accessibilityValue("\(Int(selectedMinutes)) minutes")
+            .accessibilityHint("Move over the scale to preview a duration, then click to start")
+        }
+    }
+}
+
+struct ContentView: View {
+    @Environment(PomodoroModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var customMinutes: Double = 0
+    @State private var hoveredMinute: Int?
+
+    private var isIdle: Bool { model.state == .idle }
+    private var canStart: Bool { isIdle && customMinutes > 0 }
+    private var maximumMinutes: Int { max(1, Int(model.maxCustomTime.rounded())) }
+
+    private var timerForeground: Color {
+        if model.state == .overtime { return .red }
+        return model.progress > 0.72 ? model.accentForegroundColor : .primary
+    }
+
+    private var controlForeground: Color {
+        if model.state == .overtime { return .red }
+        return model.progress > 0.23 ? model.accentForegroundColor : .primary
+    }
+
+    private var timerShadowColor: Color {
+        if model.progress > 0.72 { return model.accentOpposingColor.opacity(0.32) }
+        return colorScheme == .light ? .white.opacity(0.42) : .black.opacity(0.35)
+    }
+
+    private func startTimer(minutes: Double? = nil) {
+        let duration = minutes ?? customMinutes
+        guard duration > 0, isIdle else { return }
+
+        withAnimation(.easeInOut(duration: 0.24)) {
+            customMinutes = duration
+            model.start(minutes: duration)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            if isIdle {
+                MinuteScale(
+                    maximumMinutes: maximumMinutes,
+                    accentColor: model.accentColor,
+                    selectedMinutes: $customMinutes,
+                    hoveredMinute: $hoveredMinute,
+                    start: { startTimer() }
+                )
+                .frame(height: 20)
+                .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+            }
+
+            timerRow
+                .zIndex(1)
+
+            if isIdle {
+                bottomBar
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, isIdle ? 12 : 10)
+        .frame(width: isIdle ? 230 : 220)
+        .fixedSize(horizontal: true, vertical: true)
+        .background(timerProgressBackground)
+        .animation(.easeInOut(duration: 0.24), value: model.state)
+        .onChange(of: model.maxCustomTime) { _, newLimit in
+            customMinutes = min(customMinutes, max(1, newLimit))
+        }
+        .focusable(false)
+    }
+
+    private var timerRow: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Button {
+                    if isIdle {
+                        startTimer()
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.18)) { model.toggle() }
                     }
-                }) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor((customMinutes > 0 && model.state == .idle) ? .primary : .secondary.opacity(0.2))
+                } label: {
+                    GlassIcon(name: primaryControlIcon, color: primaryControlColor, size: 35)
                 }
                 .buttonStyle(.plain)
                 .focusable(false)
-                .disabled(customMinutes <= 0 || model.state != .idle)
-                .onHover { h in if h && customMinutes > 0 && model.state == .idle { NSCursor.pointingHand.set() } }
-                
-                // Settings
-                                HStack {
-                                    Spacer()
-                                    
-                                    SettingsLink {
-                                        Image(systemName: "gearshape.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.primary)
-                                            .frame(width: 36, height: 36)
-                                            .liquidGlass()
-                                    }
-                                    .buttonStyle(.plain)
-                                    .focusable(false)
-                                    .onHover { h in if h { NSCursor.pointingHand.set() } }
-                                }
-            }
-            .frame(height: 20)
-            
-            if model.state == .idle {
-                // 2. SLIDER
-                GeometryReader { geo in
-                    let sliderWidth = geo.size.width - 24
-                    let progress = customMinutes / model.maxCustomTime
-                    let thumbX = progress * Double(sliderWidth)
-                    
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.primary.opacity(0.1)).frame(height: 4)
-                        Capsule().fill(model.accentColor).frame(width: max(0, CGFloat(thumbX) + 12), height: 4)
-                        
-                        Image(systemName: model.menuIcon)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.primary)
-                            .frame(width: 24, height: 24)
-                            .background(Circle().fill(.ultraThinMaterial).shadow(radius: 2))
-                            .offset(x: CGFloat(thumbX))
-                    }
-                    .contentShape(Rectangle())
-                    .onContinuousHover { phase in
-                        switch phase {
-                        case .active(let location):
-                            isHoveringSlider = true
-                            let newX = min(max(0, location.x - 12), sliderWidth)
-                            customMinutes = round((newX / sliderWidth) * model.maxCustomTime)
-                        case .ended:
-                            isHoveringSlider = false
+                .disabled(isIdle && !canStart)
+                .help(primaryControlHelp)
+
+                if model.state == .running || model.state == .paused {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            model.stop()
                         }
+                    } label: {
+                        GlassResetIcon(color: controlForeground)
                     }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .help("Reset timer")
+                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
                 }
-                .frame(height: 24)
-                .padding(.horizontal, 10)
-                .transition(.opacity.combined(with: .scale(scale: 0.9))) // Se difumina y encoge al desaparecer
             }
-            
-            // 3. TIMER TEXT
-            ZStack {
-                if model.state == .idle {
-                    HStack {
-                        Image(systemName: "arrow.counterclockwise").foregroundColor(.red.opacity(dragOffset > 20 ? 1 : 0)).offset(x: 20)
-                        Spacer()
-                        Image(systemName: "play.fill").foregroundColor(.green.opacity(dragOffset < -20 ? 1 : 0)).offset(x: -20)
+
+            Spacer(minLength: 0)
+
+            Text(isIdle ? String(format: "%02d:00", Int(customMinutes)) : model.timeString)
+                .font(.system(size: isIdle ? 42 : 40, weight: .thin, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+                .foregroundStyle(isIdle ? Color.primary : timerForeground)
+                .shadow(
+                    color: isIdle ? .clear : timerShadowColor,
+                    radius: 1,
+                    x: 0,
+                    y: 1
+                )
+                .frame(minWidth: 132, maxWidth: .infinity, alignment: .trailing)
+                .contentTransition(.numericText())
+                .accessibilityLabel(isIdle ? "Selected duration" : "Time remaining")
+        }
+        .frame(height: 50)
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 6) {
+                ForEach(Array(model.presets.enumerated()), id: \.offset) { _, preset in
+                    Button { startTimer(minutes: preset) } label: {
+                        Text("\(Int(preset))")
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .frame(width: 28, height: 28)
+                            .liquidGlass()
                     }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .help("Start \(Int(preset)) minute timer")
                 }
-                
-                Text(model.state == .idle ? String(format: "%02d:00", Int(customMinutes)) : model.timeString)
-                    .font(.system(size: 60, weight: .thin, design: .rounded))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .foregroundColor(model.timeColor)
-                    .opacity(model.state == .idle && isHoveringSlider ? 0.4 : 1.0)
-                    .padding(.horizontal, 16)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(.ultraThickMaterial).opacity(dragOffset == 0 ? 0 : 1))
-                    .offset(x: dragOffset)
-                    .gesture(
-                        DragGesture(minimumDistance: 10)
-                            .onChanged { value in
-                                if model.state == .idle {
-                                    let dx = value.translation.width
-                                    if customMinutes > 0 || dx > 0 { dragOffset = dx > 0 ? min(dx, 60) : max(dx, -60) }
-                                }
-                            }
-                            .onEnded { _ in
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                    if model.state == .idle {
-                                        if dragOffset > 40 { customMinutes = 0 }
-                                        else if dragOffset < -40 && customMinutes > 0 { activePreset = nil; model.start(minutes: customMinutes) }
-                                    }
-                                    dragOffset = 0
-                                }
-                            }
-                    )
             }
-            .frame(height: 65)
-            
-            if model.state == .idle {
-                // 4. PRESETS
-                HStack(spacing: 12) {
-                    ForEach(model.presets, id: \.self) { preset in
-                        Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                activePreset = preset
-                                model.start(minutes: preset)
-                            }
-                        }) {
-                            Text("\(Int(preset))")
-                                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                                .frame(width: 44, height: 44)
-                                .modifier(PresetGlassModifier(isActive: false, accentColor: model.accentColor))
-                        }
-                        .buttonStyle(.plain)
-                        .focusable(false)
-                        .onHover { h in if h { NSCursor.pointingHand.set() } }
-                    }
-                }
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+            Spacer(minLength: 12)
+
+            Button {
+                NotificationCenter.default.post(name: .showPomodoroSettings, object: nil)
+            } label: {
+                GlassIcon(name: "gearshape.fill", size: 28)
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .help("Settings")
+        }
+        .frame(height: 28)
+    }
+
+    private var primaryControlIcon: String {
+        switch model.state {
+        case .idle, .paused: "play.fill"
+        case .running: "pause.fill"
+        case .overtime: "stop.fill"
+        }
+    }
+
+    private var primaryControlColor: Color {
+        if isIdle && !canStart { return .secondary.opacity(0.28) }
+        return isIdle ? .primary : controlForeground
+    }
+
+    private var primaryControlHelp: String {
+        switch model.state {
+        case .idle: "Start timer"
+        case .running: "Pause timer"
+        case .paused: "Resume timer"
+        case .overtime: "Stop alarm"
+        }
+    }
+
+    private var timerProgressBackground: some View {
+        GeometryReader { geometry in
+            if !isIdle {
+                model.accentColor
+                    .opacity(0.82)
+                    .frame(width: geometry.size.width * CGFloat(model.progress))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .animation(.linear(duration: 1), value: model.progress)
+                    .transition(.opacity)
             }
         }
-        .padding(.vertical, 24)
-        .padding(.horizontal, 24)
-        .frame(width: 260)
-        .fixedSize()
-        
-        .background(
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Color.clear
-                    
-                    if model.state != .idle {
-                        model.accentColor
-                            .opacity(0.8)
-                            .frame(width: geo.size.width * CGFloat(model.progress))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .animation(.linear(duration: 1.0), value: model.progress)
-                            .transition(.opacity)
-                    }
-                }
-            }
-        )
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: model.state)
-        .focusable(false)
     }
 }

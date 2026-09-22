@@ -1,226 +1,198 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
-    @Environment(PomodoroModel.self) var model
-    
+    var body: some View {
+        GeneralSettingsView()
+            .frame(width: 620, height: 560)
+    }
+}
+
+private struct GeneralSettingsView: View {
+    @Environment(PomodoroModel.self) private var model
+
+    private let icons = ["timer", "clock", "hourglass", "alarm", "stopwatch", "circle.dashed"]
+    private let sounds = ["Ping", "Glass", "Basso", "Blow", "Bottle", "Frog", "Tink"]
+
     var body: some View {
         @Bindable var bindableModel = model
-        
-        NavigationSplitView {
-            List(selection: $bindableModel.settingsSelection) {
-                Label("Appearance", systemImage: "paintpalette").tag("Appearance")
-                Label("Presets & Limits", systemImage: "slider.horizontal.3").tag("Presets")
-                Label("Sound", systemImage: "speaker.wave.2").tag("Alarm")
-                
-                Divider() // Un separador limpio
-                
-                Label("What's New", systemImage: "sparkles").tag("WhatsNew")
+
+        ScrollView(.vertical) {
+            VStack(alignment: .leading, spacing: 26) {
+                Text("General")
+                    .font(.largeTitle.bold())
+
+                settingsSection("Appearance", subtitle: "Choose the accent color and menu bar icon.") {
+                    HStack(spacing: 14) {
+                        ColorPicker("Accent color", selection: $bindableModel.accentColor, supportsOpacity: false)
+                            .frame(maxWidth: 180, alignment: .leading)
+
+                        Divider().frame(height: 24)
+
+                        HStack(spacing: 7) {
+                            ForEach(icons, id: \.self) { icon in
+                                Button {
+                                    model.menuIcon = icon
+                                } label: {
+                                    Image(systemName: icon)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .frame(width: 32, height: 32)
+                                        .background(
+                                            model.menuIcon == icon
+                                                ? model.accentColor.opacity(0.18)
+                                                : Color.primary.opacity(0.045),
+                                            in: RoundedRectangle(cornerRadius: 8)
+                                        )
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(model.menuIcon == icon ? model.accentColor : .clear, lineWidth: 1.5)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                                .help(icon.capitalized)
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                settingsSection("Presets & Limits", subtitle: "Set the scale limit and your quick-start timers.") {
+                    HStack(spacing: 18) {
+                        HStack(spacing: 6) {
+                            Text("Scale limit")
+                            TextField("Minutes", value: $bindableModel.maxCustomTime, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 58)
+                            Text("min")
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Divider().frame(height: 28)
+
+                        HStack(spacing: 8) {
+                            ForEach(Array(model.presets.indices), id: \.self) { index in
+                                PresetEditCircle(index: index)
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                settingsSection("Alarm Sound", subtitle: "Hover over an option to preview it before selecting.") {
+                    SoundPicker(
+                        selection: $bindableModel.alarmSound,
+                        sounds: sounds,
+                        onPreview: { model.playSoundPreview(name: $0) }
+                    )
+                    .frame(width: 180, height: 26)
+                }
+
+                Divider()
+
+                Text("Pomodoro 1.4.0")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
-            .navigationSplitViewColumnWidth(min: 160, ideal: 160, max: 160)
-            .toolbar(removing: .sidebarToggle)
-        } detail: {
-            switch model.settingsSelection {
-            case "Appearance": AppearanceSettings()
-            case "Presets": PresetsSettings()
-            case "Alarm": AlarmSettings()
-            case "WhatsNew": WhatsNewView()
-            default: Text("Select an option")
-            }
+            .padding(30)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 600, height: 420)
+        .scrollIndicators(.visible)
+    }
+
+    private func settingsSection<Content: View>(
+        _ title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.title3.bold())
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            content()
+        }
     }
 }
 
-struct WhatsNewView: View {
-    @Environment(PomodoroModel.self) var model
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 30) {
-            
-            Text("What's New").font(.largeTitle.bold())
-            
-            VStack(alignment: .leading, spacing: 24) {
-                // Feature 1
-                HStack(alignment: .top, spacing: 16) {
-                    Image(systemName: "magicmouse.fill")
-                        .font(.title)
-                        .foregroundColor(model.accentColor)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Right-Click Menu").font(.headline)
-                        Text("You can now right-click the menu bar icon to quickly access settings or safely quit the application.")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                // Feature 2
-                HStack(alignment: .top, spacing: 16) {
-                    Image(systemName: "drop.fill")
-                        .font(.title)
-                        .foregroundColor(model.accentColor)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Liquid Glass Settings").font(.headline)
-                        Text("The settings button inside the popover now features a beautiful, translucent native material design.")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .padding(.top, 10)
-            
-            Spacer()
-        }
-        .padding(40)
-    }
-}
-
-// MARK: - 1. Appearance Settings
-struct AppearanceSettings: View {
-    @Environment(PomodoroModel.self) var model
-    
-    // Time/Pomodoro related SF Symbols
-    let icons = ["timer", "clock", "hourglass", "alarm", "stopwatch", "circle.dashed"]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 30) {
-            
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Accent Color").font(.title2.bold())
-                Text("Choose the main color for the active states and sliders.").foregroundColor(.secondary)
-                
-                HStack {
-                    ColorPicker("Select a custom color", selection: Bindable(model).accentColor, supportsOpacity: false)
-                        .labelsHidden()
-                        .frame(width: 44, height: 44)
-                        .scaleEffect(1.2, anchor: .leading)
-                    
-                    Text("Click the circle to pick a color")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 13))
-                        .padding(.leading, 8)
-                }
-                .padding(.top, 5)
-            }
-            
-            Divider()
-            
-            // MENU BAR ICON
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Menu Bar Icon").font(.title2.bold())
-                Text("Fills from bottom to top as the timer progresses.").foregroundColor(.secondary)
-                
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 70))], spacing: 16) {
-                    ForEach(icons, id: \.self) { icon in
-                        Image(systemName: icon)
-                            .font(.system(size: 24))
-                            .frame(width: 60, height: 60)
-                            .background(model.menuIcon == icon ? model.accentColor.opacity(0.2) : Color.primary.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay( RoundedRectangle(cornerRadius: 12).stroke(model.menuIcon == icon ? model.accentColor : Color.clear, lineWidth: 2) )
-                            .onTapGesture { model.menuIcon = icon }
-                            .onHover { h in if h { NSCursor.pointingHand.set() } }
-                    }
-                }
-                .padding(.top, 10)
-            }
-            Spacer()
-        }
-        .padding(30)
-    }
-}
-
-// MARK: - 2. Presets & Limits Settings
-struct PresetsSettings: View {
-    @Environment(PomodoroModel.self) var model
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 40) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Slider Limit").font(.title2.bold())
-                HStack {
-                    Text("Maximum draggable time:")
-                    Spacer()
-                    TextField("", value: Bindable(model).maxCustomTime, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 60)
-                    Text("min")
-                }
-            }
-            
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Quick Presets").font(.title2.bold())
-                Text("Click a circle to edit its value.").foregroundColor(.secondary)
-                
-                HStack(spacing: 20) {
-                    ForEach(0..<4, id: \.self) { index in
-                        PresetEditCircle(index: index)
-                    }
-                }
-                .padding(.top, 10)
-            }
-            Spacer()
-        }
-        .padding(30)
-    }
-}
-
-struct PresetEditCircle: View {
-    @Environment(PomodoroModel.self) var model
+private struct PresetEditCircle: View {
+    @Environment(PomodoroModel.self) private var model
     let index: Int
-    
+
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .overlay( Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.6), .clear, .black.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1) )
-                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-            
-            TextField("", value: Bindable(model).presets[index], format: .number)
-                .textFieldStyle(.plain)
-                .multilineTextAlignment(.center)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .frame(width: 50, height: 50)
-        }
-        .frame(width: 60, height: 60)
+        TextField("", value: Bindable(model).presets[index], format: .number)
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.center)
+            .font(.system(size: 13, weight: .semibold, design: .rounded))
+            .frame(width: 38, height: 38)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay {
+                Circle().strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.55), .clear, .black.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            }
     }
 }
 
-// MARK: - 3. Alarm Settings
-struct AlarmSettings: View {
-    @Environment(PomodoroModel.self) var model
-    let sounds = ["Ping", "Glass", "Basso", "Blow", "Bottle", "Frog", "Tink"]
-    @State private var hoveredSound: String? = nil
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Alarm Sound").font(.title2.bold()).padding(30)
-            
-            List(sounds, id: \.self) { sound in
-                HStack {
-                    Text(sound).font(.system(size: 16))
-                    Spacer()
-                    if model.alarmSound == sound {
-                        Image(systemName: "checkmark").foregroundColor(model.accentColor)
-                    }
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 16)
-                .background(model.alarmSound == sound ? model.accentColor.opacity(0.1) : (hoveredSound == sound ? Color.primary.opacity(0.05) : Color.clear))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .contentShape(Rectangle())
-                .onHover { isHovered in
-                    if isHovered {
-                        hoveredSound = sound
-                        NSCursor.pointingHand.set()
-                        model.playSoundPreview(name: sound)
-                    } else if hoveredSound == sound {
-                        hoveredSound = nil
-                    }
-                }
-                .onTapGesture { model.alarmSound = sound }
-            }
-            .listStyle(.plain)
-            .padding(.horizontal, 14)
+private struct SoundPicker: NSViewRepresentable {
+    @Binding var selection: String
+    let sounds: [String]
+    let onPreview: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeNSView(context: Context) -> NSPopUpButton {
+        let picker = NSPopUpButton(frame: .zero, pullsDown: false)
+        picker.controlSize = .small
+        picker.addItems(withTitles: sounds)
+        picker.selectItem(withTitle: selection)
+        picker.target = context.coordinator
+        picker.action = #selector(Coordinator.didSelect(_:))
+        picker.menu?.delegate = context.coordinator
+        return picker
+    }
+
+    func updateNSView(_ picker: NSPopUpButton, context: Context) {
+        context.coordinator.parent = self
+
+        if picker.itemTitles != sounds {
+            picker.removeAllItems()
+            picker.addItems(withTitles: sounds)
+        }
+        if picker.titleOfSelectedItem != selection {
+            picker.selectItem(withTitle: selection)
+        }
+        picker.menu?.delegate = context.coordinator
+    }
+
+    final class Coordinator: NSObject, NSMenuDelegate {
+        var parent: SoundPicker
+
+        init(parent: SoundPicker) {
+            self.parent = parent
+        }
+
+        @objc func didSelect(_ sender: NSPopUpButton) {
+            guard let selectedSound = sender.titleOfSelectedItem else { return }
+            parent.selection = selectedSound
+        }
+
+        func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+            guard let sound = item?.title, parent.sounds.contains(sound) else { return }
+            parent.onPreview(sound)
         }
     }
 }
