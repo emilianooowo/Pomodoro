@@ -8,7 +8,7 @@ A compact focus timer that lives in the macOS menu bar. Built with SwiftUI and A
 
 Tomati stays out of the way while keeping the controls you need close at hand. Choose a duration, start a quick preset, or run a complete focus session with automatic breaks.
 
-[![Descargar Tomati v1.1.2](https://img.shields.io/badge/Descargar-Tomati%20v1.1.2-2EA44F?style=for-the-badge&logo=github)](https://github.com/emilianooowo/Tomati/releases/download/Tomati-1.1.2/Tomati.v1.1.2.zip)
+[![Descargar Tomati v1.1.2](https://img.shields.io/badge/Descargar-Tomati%20v1.1.2-E53935?style=for-the-badge&logo=github&logoColor=white)](https://github.com/emilianooowo/Tomati/releases/download/Tomati-1.1.2/Tomati.v1.1.2.zip)
 
 ## Download
 
